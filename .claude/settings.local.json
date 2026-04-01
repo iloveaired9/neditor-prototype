@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(pdca)",
+      "Skill(pdca:*)",
+      "Bash(git tag -a v1.0.0 -m \"Release v1.0.0: Neditor - Modular Web Editor:*)",
+      "Bash(git push origin v1.0.0)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)",
+      "Bash(npm run:*)",
+      "Bash(wc -l js/plugins/*.js)",
+      "Bash(ls -lh js/plugins/SmartImageEditorPlugin.js docs/requirements/*.md)",
+      "Bash(npx playwright:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3001)",
+      "Bash(taskkill //F //IM node.exe)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -n \"port\\\\|server\" vite.config.*)",
+      "Bash(ls vite.config.*)"
+    ]
+  }
+}
