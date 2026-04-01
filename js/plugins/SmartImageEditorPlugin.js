@@ -1089,6 +1089,7 @@ export class SmartImageEditorPlugin {
     /**
      * 편집 적용 - 서버 업로드 후 URL로 교체
      * 같은 원본 이미지의 중복 편집 시 파일은 덮어써짐 (쓰레기 파일 방지)
+     * 파일명: edited_smartimageeditor_t=[timestamp].png
      */
     async _applyEdits() {
         const applyBtn = this.modal.querySelector('#smartEditorApply');
@@ -1101,13 +1102,10 @@ export class SmartImageEditorPlugin {
 
             const dataUrl = this.canvas.toDataURL('image/png');
 
-            // 이미지 요소에 고유 ID 부여 (처음 한 번만, 이후 편집은 같은 ID 사용)
-            // 같은 원본 이미지는 항상 같은 파일명으로 덮어써짐
-            let imageId = 'unknown';
-            if (this.selectedImageElement) {
-                imageId = this._ensureImageId(this.selectedImageElement);
-            }
-            const filename = `edited_${imageId}.png`;
+            // 파일명: edited_smartimageeditor_t=[타임스탬프].png
+            // 같은 이름으로 중복 편집 시 서버에서 자동으로 덮어써짐
+            const timestamp = Date.now();
+            const filename = `edited_smartimageeditor_t=${timestamp}.png`;
 
             const file = this._dataUrlToFile(dataUrl, filename);
             const result = await ApiService.uploadImage(file);
