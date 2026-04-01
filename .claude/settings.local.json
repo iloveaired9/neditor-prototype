@@ -16,7 +16,12 @@
       "Bash(taskkill //F //IM node.exe)",
       "mcp__Claude_Preview__preview_start",
       "Bash(grep -n \"port\\\\|server\" vite.config.*)",
-      "Bash(ls vite.config.*)"
+      "Bash(ls vite.config.*)",
+      "Bash(pkill -f \"node\\\\|python\")",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(curl -s -X POST http://localhost:8000/upload -F \"image=@C:/rnd/claude/editor/neditor-prototype/backend/uploads/ea4ac00a-aa3f-42f6-bb8b-9ecec7d67923.png\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/upload -F \"image=@C:/rnd/claude/editor/neditor-prototype/backend/uploads/ea4ac00a-aa3f-42f6-bb8b-9ecec7d67923.png\")",
+      "Bash(curl -s -X POST http://localhost:8000/upload -F \"image=@C:/rnd/claude/editor/neditor-prototype/backend/uploads/ea4ac00a-aa3f-42f6-bb8b-9ecec7d67923.png;filename=edited_smartimageeditor_test123.png\")"
     ]
   }
 }

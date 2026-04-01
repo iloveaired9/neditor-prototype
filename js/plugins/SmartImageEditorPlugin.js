@@ -1088,12 +1088,15 @@ export class SmartImageEditorPlugin {
 
     /**
      * 편집 적용 - 서버 업로드 후 URL로 교체
-     * 같은 원본 이미지의 중복 편집 시 파일은 덮어써짐 (쓰레기 파일 방지)
-     * 파일명: edited_smartimageeditor_t=[timestamp].png
+     * 같은 원본 이미지 → 같은 파일명으로 덮어쓰기 (쓰레기 파일 방지)
+     * 파일명: edited_smartimageeditor_[stableId].png (고정)
+     * URL: ...edited_smartimageeditor_[stableId].png?t=[timestamp] (캐시 방지)
      */
     async _applyEdits() {
         const applyBtn = this.modal.querySelector('#smartEditorApply');
         const originalText = applyBtn.innerHTML;
+        // 원본 URL 보존 (업로드 실패 시 복원용)
+        const originalSrc = this.selectedImageElement ? this.selectedImageElement.src : null;
 
         try {
             // 로딩 표시
@@ -1101,15 +1104,25 @@ export class SmartImageEditorPlugin {
             applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 업로드 중...';
 
             const dataUrl = this.canvas.toDataURL('image/png');
+            console.log('📤 편집 이미지 크기:', Math.round(dataUrl.length / 1024), 'KB');
 
-            // 파일명: edited_smartimageeditor_t=[타임스탬프].png
-            // 같은 이름으로 중복 편집 시 서버에서 자동으로 덮어써짐
-            const timestamp = Date.now();
-            const filename = `edited_smartimageeditor_t=${timestamp}.png`;
+            // 같은 이미지는 항상 같은 파일명 → 서버에서 덮어쓰기 (쓰레기 파일 방지)
+            let stableId = 'unknown';
+            if (this.selectedImageElement) {
+                stableId = this._ensureImageId(this.selectedImageElement);
+            }
+            const filename = `edited_smartimageeditor_${stableId}.png`;
+            console.log('📤 업로드 파일명:', filename);
 
             const file = this._dataUrlToFile(dataUrl, filename);
+            console.log('📤 File 객체 생성 완료:', file.name, file.size, 'bytes');
+
             const result = await ApiService.uploadImage(file);
-            const serverUrl = result.url;
+            console.log('📤 서버 응답:', result);
+
+            // ?t=timestamp 붙여서 브라우저 캐시 방지
+            const timestamp = Date.now();
+            const serverUrl = result.url + `?t=${timestamp}`;
 
             // 이미지 src를 서버 URL로 교체
             if (this.selectedImageElement) {
@@ -1118,7 +1131,7 @@ export class SmartImageEditorPlugin {
 
             this.editor.emit('smartImageEdited', {
                 imageUrl: serverUrl,
-                originalDataUrl: dataUrl,
+                originalSrc: originalSrc,
                 metadata: {
                     editState: this.editState,
                     history: this.state.history
@@ -1128,27 +1141,16 @@ export class SmartImageEditorPlugin {
             console.log('✅ 편집된 이미지 서버 업로드 완료:', serverUrl);
             this.closeEditor();
         } catch (error) {
-            console.error('Failed to upload edited image:', error);
+            console.error('❌ 이미지 업로드 실패:', error.message, error);
 
-            // 서버 업로드 실패 시 fallback: dataURL로 직접 적용
-            try {
-                const dataUrl = this.canvas.toDataURL('image/png');
-                if (this.selectedImageElement) {
-                    this.selectedImageElement.src = dataUrl;
-                }
-                this.editor.emit('smartImageEdited', {
-                    imageUrl: dataUrl,
-                    metadata: {
-                        editState: this.editState,
-                        history: this.state.history
-                    }
-                });
-                console.warn('⚠️ 서버 업로드 실패, dataURL로 대체 적용');
-                this.closeEditor();
-            } catch (fallbackError) {
-                console.error('Fallback also failed:', fallbackError);
-                alert('편집을 적용하는 중 오류가 발생했습니다.');
+            // 업로드 실패 시 원본 URL 유지 (base64로 변경하지 않음!)
+            if (this.selectedImageElement && originalSrc) {
+                this.selectedImageElement.src = originalSrc;
+                console.warn('⚠️ 서버 업로드 실패 → 원본 URL 유지:', originalSrc);
             }
+
+            alert(`이미지 업로드 실패: ${error.message}\n원본 이미지가 유지됩니다.`);
+            this.closeEditor();
         } finally {
             applyBtn.disabled = false;
             applyBtn.innerHTML = originalText;

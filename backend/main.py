@@ -30,19 +30,25 @@ async def upload_image(image: UploadFile = File(...)):
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files are allowed.")
 
-    # Generate unique filename
-    file_extension = os.path.splitext(image.filename)[1]
-    if not file_extension:
-        # Fallback extension based on content type
-        content_type_map = {
-            "image/jpeg": ".jpg",
-            "image/png": ".png",
-            "image/gif": ".gif",
-            "image/webp": ".webp",
-        }
-        file_extension = content_type_map.get(image.content_type, ".png")
+    # Check if filename follows SmartImageEditor pattern: edited_smartimageeditor_*.png
+    # If so, preserve it to allow deduplication (same image → same file → overwrite)
+    if image.filename and image.filename.startswith("edited_smartimageeditor_"):
+        unique_filename = image.filename
+    else:
+        # Generate unique filename for other uploads
+        file_extension = os.path.splitext(image.filename)[1]
+        if not file_extension:
+            # Fallback extension based on content type
+            content_type_map = {
+                "image/jpeg": ".jpg",
+                "image/png": ".png",
+                "image/gif": ".gif",
+                "image/webp": ".webp",
+            }
+            file_extension = content_type_map.get(image.content_type, ".png")
 
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
 
     # Save the file — explicit 500 on any I/O failure (Design Section 8.2)
@@ -60,6 +66,7 @@ async def upload_image(image: UploadFile = File(...)):
     # Return the URL of the uploaded image
     # Assuming the server runs on http://localhost:8000
     file_url = f"http://localhost:8000/uploads/{unique_filename}"
+    print(f"[OK] Image uploaded: {unique_filename}")
     return {"url": file_url}
 
 @app.get("/files")
